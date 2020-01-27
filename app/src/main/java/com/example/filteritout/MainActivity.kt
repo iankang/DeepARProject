@@ -4,6 +4,7 @@ import ai.deepar.ar.AREventListener
 import ai.deepar.ar.CameraResolutionPreset
 import ai.deepar.ar.DeepAR
 import android.Manifest
+import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -17,6 +18,21 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import com.example.filteritout.databinding.ActivityMainBinding
+import android.R.string.cancel
+import android.app.AlertDialog
+import android.content.DialogInterface
+import androidx.core.content.ContextCompat.getSystemService
+import android.icu.lang.UCharacter.GraphemeClusterBreak.T
+import androidx.core.app.ComponentActivity.ExtraData
+import androidx.core.content.ContextCompat.getSystemService
+import android.icu.lang.UCharacter.GraphemeClusterBreak.T
+import android.media.MediaScannerConnection
+import android.os.Environment
+import android.widget.Toast
+import java.io.File
+import java.io.FileOutputStream
+import java.text.DateFormat
+import java.util.*
 
 
 class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener {
@@ -27,6 +43,7 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
     private val defaultCameraDevice:Int = Camera.CameraInfo.CAMERA_FACING_FRONT
     private var cameraDevice:Int = defaultCameraDevice
     private lateinit var cameraGrabber:CameraGrabber
+    private var currentMask:Int = 0
 
     var screensOrientation: Int = 0
 
@@ -99,11 +116,13 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
     }
 
     private fun goToNext() {
-
+        currentMask = (currentMask + 1)% filterMutableList.size
+        deepAR.switchEffect("mask", filterMutableList.get(currentMask)?.let { getFilterPath(it) })
     }
 
     private fun goToPrevious() {
-
+        currentMask = (currentMask - 1)% filterMutableList.size
+        deepAR.switchEffect("mask", filterMutableList.get(currentMask)?.let { getFilterPath(it) })
     }
 
     private fun initializeFilters() {
@@ -143,7 +162,36 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
 
         cameraGrabber.resolutionPreset = CameraResolutionPreset.P640x480
 
+        val context: Activity = this
+
+
+        cameraGrabber.initCamera(object : CameraGrabberListener {
+            override fun onCameraInitialized() {
+                cameraGrabber.setFrameReceiver(deepAR)
+                cameraGrabber.startPreview()
+            }
+
+            override fun onCameraError(errorMsg: String) {
+                val builder = AlertDialog.Builder(context)
+                builder.setTitle("Camera error")
+                builder.setMessage(errorMsg)
+                builder.setCancelable(true)
+                builder.setPositiveButton("Ok",
+                    { dialogInterface, i -> dialogInterface.cancel()})
+                val dialog = builder.create()
+                dialog.show()
+            }
+        })
+
     }
+
+    private fun getFilterPath(filterName: String): String?{
+        return if (filterName == "none") {
+            null
+        } else "file:///android_asset/$filterName"
+    }
+
+
 
     private fun getScreenOrientation(): Int {
         val rotation = windowManager.defaultDisplay.rotation
@@ -177,12 +225,31 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
         return orientation
     }
 
+    override fun onStop() {
+        super.onStop()
+        if(cameraGrabber == null)
+            return
+        cameraGrabber.setFrameReceiver(null)
+        cameraGrabber.stopPreview()
+        cameraGrabber.releaseCamera()
+//        cameraGrabber = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if(deepAR == null)
+            return
+        deepAR.setAREventListener(null)
+        deepAR.release()
+//        deepAR = null
+    }
+
     override fun surfaceChanged(holder: SurfaceHolder?, format: Int, width: Int, height: Int) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        deepAR.setRenderSurface(holder?.surface,width, height)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        deepAR?.setRenderSurface(null,0,0)
     }
 
     override fun surfaceCreated(holder: SurfaceHolder?) {
@@ -213,8 +280,16 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun screenshotTaken(p0: Bitmap?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun screenshotTaken(bitmap: Bitmap?) {
+        var now:CharSequence = android.text.format.DateFormat.format("yyyy_MM_dd_hh_mm_ss", Date())
+        var fileImage:File? = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/DeepAR_" + now + ".jpg")
+        var outPutStream: FileOutputStream? = FileOutputStream(fileImage)
+        val quality:Int = 100
+        bitmap?.compress(Bitmap.CompressFormat.JPEG, quality, outPutStream)
+        outPutStream?.flush()
+        outPutStream?.close()
+        MediaScannerConnection.scanFile(MainActivity@this, arrayOf<String>(fileImage.toString()), null, null)
+        Toast.makeText(MainActivity@this, "Screenshot Saved",Toast.LENGTH_SHORT).show()
     }
 
     override fun effectSwitched(p0: String?) {
