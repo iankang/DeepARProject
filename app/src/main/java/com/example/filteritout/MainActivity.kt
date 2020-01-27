@@ -53,6 +53,8 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
 //        deepAR.setLicenseKey(getString(R.string.license_key))
 //        deepAR.initialize(this,this)
 
+
+
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
         if(ContextCompat.checkSelfPermission(this,Manifest.permission.CAMERA)!= PackageManager.PERMISSION_GRANTED||
@@ -86,6 +88,7 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
 
     fun initialize(){
         binding = DataBindingUtil.setContentView(this,R.layout.activity_main)
+
         initializeDeepAR()
         initializeFilters()
         initializeViews()
@@ -126,6 +129,7 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
     }
 
     private fun initializeFilters() {
+        filterMutableList = arrayListOf()
         filterMutableList.add("none")
         filterMutableList.add("aviators")
         filterMutableList.add("bigmouth")
@@ -253,36 +257,29 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
     }
 
     override fun surfaceCreated(holder: SurfaceHolder?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun shutdownFinished() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun faceVisibilityChanged(p0: Boolean) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun videoRecordingFailed() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun videoRecordingPrepared() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun initialized() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun error(p0: String?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun screenshotTaken(bitmap: Bitmap?) {
         var now:CharSequence = android.text.format.DateFormat.format("yyyy_MM_dd_hh_mm_ss", Date())
-        var fileImage:File? = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/DeepAR_" + now + ".jpg")
+        var fileImage:File? = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString()+"/DeepAR_$now.jpg")
         var outPutStream: FileOutputStream? = FileOutputStream(fileImage)
         val quality:Int = 100
         bitmap?.compress(Bitmap.CompressFormat.JPEG, quality, outPutStream)
@@ -293,18 +290,14 @@ class MainActivity : AppCompatActivity(),SurfaceHolder.Callback,AREventListener 
     }
 
     override fun effectSwitched(p0: String?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun videoRecordingStarted() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun videoRecordingFinished() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun imageVisibilityChanged(p0: String?, p1: Boolean) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
